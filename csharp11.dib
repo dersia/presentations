@@ -1,0 +1,308 @@
+#!meta
+
+{"kernelInfo":{"defaultKernelName":"csharp","items":[{"aliases":[],"languageName":"csharp","name":"csharp"}]}}
+
+#!markdown
+
+# Whats new in C# 11
+
+- Raw string literals
+- Newlines in string interpolation expressions
+- UTF-8 literals
+- Generic Attributes
+- List Patterns
+- File-scoped types
+- Required Members
+- and more...
+
+#!markdown
+
+## Example of Raw String Literals
+
+Here's an example of using raw string literals to define a multi-line string in C#:
+
+#!csharp
+
+string message = @"Dear John,
+
+I hope this message finds you well. I wanted to reach out and see how you're doing. It's been a while since we last spoke.
+
+Best regards,
+Jane";
+
+Console.WriteLine(message);
+
+#!csharp
+
+string world = "world2";
+
+string message = $$$$$$$$$$""""
+                 Dear John,
+                    {{world}}
+                    I hope this message finds you well. """I wanted to reach out and""" see how you're doing. {It's been a while since we last spoke.}
+
+                 Best regards,
+                 Jane
+                 """";
+
+Console.WriteLine(message);
+
+#!markdown
+
+## New line in string interpolation expressions
+
+You can now have new lines in interpolation expressions
+
+#!csharp
+
+string name = "Micha";
+string myInterpolatedString = $"Hello {name}";
+
+bool isMichaCool = true;
+string myInterpolatedMichaString = $"Hello {name}. You are {(isMichaCool ? "cool" : "not cool")}.";
+
+#!csharp
+
+string name = "Micha";
+string myInterpolatedString = $"Hello {name}";
+
+bool isMichaCool = true;
+string myInterpolatedMichaString = $"Hello {name}. You are {(
+    isMichaCool ? 
+        "cool" 
+        : 
+        "not cool"
+    )
+}.";
+Console.WriteLine(myInterpolatedMichaString);
+
+#!csharp
+
+string name = "Micha";
+string myInterpolatedString = $"Hello {name}";
+
+bool isMichaCool = true;
+string myInterpolatedMichaString = $"Hello {name}. You are {
+    isMichaCool switch 
+    {
+        true => "cool",
+        false => "not cool"
+    }
+}.";
+
+#!csharp
+
+string name = "Micha";
+string myInterpolatedString = $"Hello {name}";
+
+bool isMichaCool = true;
+string myInterpolatedMichaString = $"""
+                                    Hello {name}. You are {
+                                        isMichaCool switch 
+                                        {
+                                            true => "cool",
+                                            false => "not cool"
+                                        }
+                                    }.
+                                    """;
+
+#!markdown
+
+## UTF-8 literals
+
+When working with HTTP UTF-8 is the encoding you always need. C# uses UTF-16 for strings, so we need to always convert strings into UTF-8 bytes
+
+#!csharp
+
+string myJson = "{\"last_name\": \"Doe\",\"age\": 30,\"first_name\": \"John\"}";
+
+byte[] bytes = Encoding.UTF8.GetBytes(myJson);
+
+#!csharp
+
+ReadOnlySpan<byte> myJsonBytes = "{\"last_name\": \"Doe\",\"age\": 30,\"first_name\": \"John\"}"u8;
+
+#!markdown
+
+## Example of Generic Attribute
+
+Here is an example of C# Generic Attributes
+
+#!csharp
+
+class MyAttribute : Attribute {
+    Type attribType;
+
+    public MyAttribute(Type type) {
+        attribType = type;
+    }
+}
+
+[My(typeof(int))]
+class MyClass {
+}
+
+#!csharp
+
+class MyGenericAttribute<T> : Attribute {
+    public MyGenericAttribute() {
+    }
+}
+
+[MyGeneric<int>]
+class MyClass {
+}
+
+#!markdown
+
+## List Patterns
+
+New List patterns for pattern matching
+
+#!csharp
+
+List<int> some = new List<int> { 1, 2, 3 };
+
+int[] numbers = { 1, 2, 3 };
+
+Console.WriteLine(numbers is [1, 2, 3]);  // True
+Console.WriteLine(numbers is [1, 2, 4]);  // False
+Console.WriteLine(numbers is [1, 2, 3, 4]);  // False
+Console.WriteLine(numbers is [0 or 1, <= 2, >= 3]);  // True
+
+#!markdown
+
+You can also make use of discard and slice patterns
+
+#!csharp
+
+Console.WriteLine(new[] { 1, 2, 3, 4, 5 } is [> 0, > 0, ..]);
+Console.WriteLine(new[] { 1, 1 } is [_, _, ..]);
+Console.WriteLine(new[] { 0, 1, 2, 3, 4 } is [> 0, > 0, ..]);
+Console.WriteLine(new[] { 1 } is [1, 2, ..]); 
+
+Console.WriteLine(new[] { 1, 2, 3, 4 } is [.., > 0, > 0]);
+Console.WriteLine(new[] { 2, 4 } is [.., > 0, 2, 4]);
+Console.WriteLine(new[] { 2, 4 } is [.., 2, 4]);
+
+Console.WriteLine(new[] { 1, 2, 3, 4 } is [>= 0, .., 2 or 4]);
+Console.WriteLine(new[] { 1, 0, 0, 1 } is [1, 0, .., 0, 1]);
+Console.WriteLine(new[] { 1, 0, 1 } is [1, 0, .., 0, 1]);
+
+#!markdown
+
+### above patterns explained 
+
+- `[> 0, > 0, ..]`: Matches an array of integers that has at least two elements, where the first two elements are both greater than zero, and the rest of the elements can be any value.
+
+- `[_ , _, ..]`: Matches an array of integers that has at least two elements, where the first two elements can be any value, and the rest of the elements can be any value.
+
+- `[> 0, > 0, ..]`: Matches an array of integers that has at least two elements, where the first two elements are both greater than zero, and the rest of the elements can be any value.
+
+- `[1, 2, ..]`: Matches an array of integers that starts with the values 1 and 2, and can have any number of additional elements.
+
+- `[.., > 0, > 0]`: Matches an array of integers that ends with two elements that are both greater than zero, and can have any number of additional elements at the beginning.
+
+- `[.., > 0, 2, 4]`: Matches an array of integers that ends with the values 2 and 4, and can have any number of additional elements at the beginning.
+
+- `[.., 2, 4]`: Matches an array of integers that ends with the values 2 and 4, and can have any number of additional elements at the beginning.
+
+- `[>= 0, .., 2 or 4]`: Matches an array of integers that starts with any number of elements that are greater than or equal to zero, has any number of additional elements in the middle, and ends with either the value 2 or the value 4.
+
+- `[1, 0, .., 0, 1]`: Matches an array of integers that starts with the values 1 and 0, has any number of additional elements in the middle that are all 0, and ends with the values 0 and 1.
+
+- `[1, 0, .., 0, 1]`: Matches an array of integers that starts with the values 1 and 0, has any number of additional elements in the middle that are all 0, and ends with the values 0 and 1.
+
+#!markdown
+
+## File-scoped types
+
+You can have now types that are only visible within the same file
+
+#!csharp
+
+public class MyPublicClass {
+}
+
+private class MyPrivateClass {
+}
+
+internal class MyInternalClass {
+}
+
+protected class MyProtectedClass {
+}
+
+protected internal class MyProtectedInternalClass {
+}
+
+file class MyFileScopedClass {
+}
+
+file interface MyFileScopedInterface {
+}
+
+#!markdown
+
+## Required Members
+
+You can define members now as required, these MUST be initialized
+
+#!csharp
+
+public class MyPropClass 
+{
+    public int MyProp { get; set; }
+    public string MyProp2 { get; set; }
+    public bool MyProp3 { get; set; }
+}
+
+var myProps = new MyPropClass();
+
+#!csharp
+
+public class MyPropClass 
+{
+    public required int MyProp { get; set; }
+    public required string MyProp2 { get; set; }
+    public required bool MyProp3 { get; set; }
+}
+
+var myProps = new MyPropClass();
+
+#!csharp
+
+public class MyPropClass 
+{
+    public required int MyProp { get; init; }
+    public required string MyProp2 { get; set; }
+    public required bool MyProp3 { get; set; }
+}
+
+var myProps = new MyPropClass  
+{
+    MyProp = 1,
+    MyProp2 = "Hello",
+    MyProp3 = true
+};
+
+#!csharp
+
+using System.Diagnostics.CodeAnalysis;
+
+public class MyPropClass 
+{
+    [SetsRequiredMembers]
+    public MyPropClass(int myProp, string myProp2) {
+        MyProp = myProp;
+        MyProp2 = myProp2;
+    }
+    public required int MyProp { get; set; }
+    public required string MyProp2 { get; set; }
+    public required bool MyProp3 { get; set; }
+}
+
+var myProps2 = new MyPropClass(1, "Hello") 
+{
+    MyProp3 = true
+};

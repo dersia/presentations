@@ -1,0 +1,321 @@
+#!meta
+
+{"kernelInfo":{"defaultKernelName":"csharp","items":[{"aliases":[],"languageName":"csharp","name":"csharp"}]}}
+
+#!csharp
+
+#nullable enable
+
+#!markdown
+
+# Whats new in .NET 7
+
+- System.Text.Json serialization
+ - Contract customization
+ - Polymorphic serialization
+ - Support for required members
+- Regular expressions
+ - RegexOptions.NonBacktracking 
+ - Source Generators
+ - Faster case insensitive operations
+- new Types and Extensions to Types
+ - DateTime/DateOnly/TimeOnly
+ - System.Format.Tar
+ - Unix File Mode
+ - RateLimiter
+ - StringSyntaxAttribute
+- P/Invoke source generators
+
+#!markdown
+
+## System.Text.Json serialization Contract customization
+
+Better control over the de/serialization of your types
+
+#!csharp
+
+using System.Text.Json;
+using System.Text.Json.Serialization.Metadata;
+
+JsonSerializerOptions options = new()
+{
+    TypeInfoResolver = new DefaultJsonTypeInfoResolver
+    {
+        Modifiers = { MyCustomModifier } // IList<Action<JsonTypeInfo>>
+    }
+};
+
+#!markdown
+
+## System.Text.Json serialization Polymorphic serialization
+
+You can now use polymorphismn with System.Text.Json
+
+#!csharp
+
+// Polymorphismn
+
+using System.Text.Json.Serialization;
+
+[JsonDerivedType(typeof(WeatherForecastWithCity))]
+public class WeatherForecastBase
+{
+    public DateTimeOffset Date { get; set; }
+    public int TemperatureCelsius { get; set; }
+    public string Summary { get; set; }
+}
+
+public class WeatherForecastWithCity : WeatherForecastBase
+{
+    public string City { get; set; }
+}
+
+WeatherForecastBase weather = new WeatherForecastWithCity
+{
+    City = "Milwaukee",
+    Date = new DateTimeOffset(2022, 9, 26, 0, 0, 0, TimeSpan.FromHours(-5)),
+    TemperatureCelsius = 15,
+    Summary = "Cool"
+};
+
+var json = JsonSerializer.Serialize<WeatherForecastBase>(weather);
+Console.WriteLine(json);
+
+#!csharp
+
+// Polymorphism with type discriminator
+
+using System.Text.Json.Serialization;
+using System.Text.Json;
+
+[JsonDerivedType(typeof(WeatherForecastBase), typeDiscriminator: "base")]
+[JsonDerivedType(typeof(WeatherForecastWithCity), typeDiscriminator: "withCity")]
+public class WeatherForecastBase
+{
+    public DateTimeOffset Date { get; set; }
+    public int TemperatureCelsius { get; set; }
+    public string Summary { get; set; }
+}
+
+public class WeatherForecastWithCity : WeatherForecastBase
+{
+    public string City { get; set; }
+}
+
+WeatherForecastBase weather = new WeatherForecastWithCity
+{
+    City = "Milwaukee",
+    Date = new DateTimeOffset(2022, 9, 26, 0, 0, 0, TimeSpan.FromHours(-5)),
+    TemperatureCelsius = 15,
+    Summary = "Cool"
+};
+
+var json = JsonSerializer.Serialize<WeatherForecastBase>(weather);
+Console.WriteLine(json);
+
+#!csharp
+
+// Polymorphism with custom type discriminator
+
+using System.Text.Json.Serialization;
+using System.Text.Json;
+
+[JsonPolymorphic(TypeDiscriminatorPropertyName = "$discriminator")]
+[JsonDerivedType(typeof(WeatherForecastBase), typeDiscriminator: "base")]
+[JsonDerivedType(typeof(WeatherForecastWithCity), typeDiscriminator: "withCity")]
+public class WeatherForecastBase
+{
+    public DateTimeOffset Date { get; set; }
+    public int TemperatureCelsius { get; set; }
+    public string Summary { get; set; }
+}
+
+public class WeatherForecastWithCity : WeatherForecastBase
+{
+    public string City { get; set; }
+}
+
+WeatherForecastBase weather = new WeatherForecastWithCity
+{
+    City = "Milwaukee",
+    Date = new DateTimeOffset(2022, 9, 26, 0, 0, 0, TimeSpan.FromHours(-5)),
+    TemperatureCelsius = 15,
+    Summary = "Cool"
+};
+
+var json = JsonSerializer.Serialize<WeatherForecastBase>(weather);
+Console.WriteLine(json);
+
+#!csharp
+
+using System.Text.Json.Serialization;
+using System.Text.Json;
+
+[JsonPolymorphic(UnknownDerivedTypeHandling = JsonUnknownDerivedTypeHandling.FallBackToBaseType)]
+[JsonDerivedType(typeof(WeatherForecastBase), typeDiscriminator: "base")]
+[JsonDerivedType(typeof(WeatherForecastWithCity), typeDiscriminator: "withCity")]
+public class WeatherForecastBase
+{
+    public DateTimeOffset Date { get; set; }
+    public int TemperatureCelsius { get; set; }
+    public string Summary { get; set; }
+}
+
+#!markdown
+
+Possible values for Fallback
+- FailSerialization
+- FallBackToBaseType
+ - An object of undeclared runtime type will fall back to the serialization contract of the base type.
+- FallBackToNearestAncestor
+ - An object of undeclared runtime type will revert to the serialization contract of the nearest declared ancestor type. 
+
+#!markdown
+
+## System.Text.Json serialization Support for required Members
+
+System.Text.Json supports required members of C# 11
+
+#!markdown
+
+## Regular Expressions NonBacktracking
+
+You can now set RegEx to not use Backtracking, this give guarantees linear-time processing and makes RegEx over faster
+
+## Regular Expressions Source Generators
+
+New RegEx Source Generators have been implemented, which create the RegEx code at compile time instead of runtime. This makes executing RegEx at compile time very fast and makes the code NativeAOT friendly. 
+
+#!csharp
+
+using System.Text.RegularExpressions;
+
+private static readonly Regex s_abcOrDefGeneratedRegex =
+    new(pattern: "abc|def",
+        options: RegexOptions.Compiled | RegexOptions.IgnoreCase);
+
+private static void EvaluateText(string text)
+{
+    if (s_abcOrDefGeneratedRegex.IsMatch(text))
+    {
+        // Take action with matching text
+    }
+}
+
+#!csharp
+
+using System.Text.RegularExpressions;
+
+[GeneratedRegex("abc|def", RegexOptions.IgnoreCase, "en-US")]
+private static partial Regex AbcOrDefGeneratedRegex();
+
+private static void EvaluateText(string text)
+{
+    if (AbcOrDefGeneratedRegex().IsMatch(text))
+    {
+        // Take action with matching text
+    }
+}
+
+#!markdown
+
+## DateTime/Offset, DateOnly, TimeOnly
+
+These types have now converters and new properties
+
+#!csharp
+
+var dts = new DateTimeOffset();
+var ts = new TimeSpan();
+
+
+Console.WriteLine(dts.Microsecond);
+Console.WriteLine(dts.Nanosecond);
+Console.WriteLine(ts.Microseconds);
+Console.WriteLine(ts.Nanoseconds);
+
+#!markdown
+
+## System.Format.Tar
+
+There are now apis to work with Tar files. Before you had to call a process and run tar cli.
+
+## Unix File Permissions
+
+Dot NET now supports handling of Unix File Permissions.
+
+## RateLimiter
+
+a new RateLimiter Class has been added, that can be use to Limit the rate of calls to APIS/Methods
+
+#!csharp
+
+#r "nuget:System.Threading.RateLimiting"
+using System.Threading.RateLimiting;
+
+var rateLimiter = new RateLimiter();
+
+
+using RateLimitLease lease = await rateLimiter.AcquireAsync(permitCount: 1, TimeSpan.FromSeconds(1));
+
+if (lease.IsAcquired)
+{
+    return await HttpClient.SendAsync(request, cancellationToken);
+}
+
+var response = new HttpResponseMessage(HttpStatusCode.TooManyRequests);
+if (lease.TryGetMetadata(MetadataName.RetryAfter, out TimeSpan retryAfter))
+{
+    response.Headers.Add(
+        "Retry-After",
+        ((int)retryAfter.TotalSeconds).ToString(
+            NumberFormatInfo.InvariantInfo));
+}
+
+return response;
+
+#!markdown
+
+## StringSyntaxAttribute
+
+There is a new Attribute to add syntax Highlighting in Editors for a string
+
+#!csharp
+
+using System.Diagnostics.CodeAnalysis;
+
+public class MyClass 
+{
+    [StringSyntax(StringSyntaxAttribute.DateOnlyFormat)]
+    public string MyDateOnlyString { get; set; }
+
+    [StringSyntax(StringSyntaxAttribute.DateTimeFormat)]
+    public string MyDateTimeString { get; set; }
+
+    [StringSyntax(StringSyntaxAttribute.TimeOnlyFormat)]
+    public string MyTimeOnlyString { get; set; }
+
+    [StringSyntax(StringSyntaxAttribute.TimeSpanFormat)]
+    public string MyTimeSpanString { get; set; }
+
+    [StringSyntax(StringSyntaxAttribute.NumericFormat)]
+    public string MyNumericString { get; set; }
+
+    [StringSyntax(StringSyntaxAttribute.Regex)]
+    public string MyRegExString { get; set; }
+
+    [StringSyntax(StringSyntaxAttribute.Uri)]
+    public string MyUriString { get; set; }
+
+    [StringSyntax(StringSyntaxAttribute.Json)]
+    public string MyJsonString { get; set; }
+
+    [StringSyntax(StringSyntaxAttribute.Xml)]
+    public string MyXmlString { get; set; }
+}
+
+#!markdown
+
+## P/Invoke Source Generators
+
+New source generators have been added for P/Invoke. These create marshalling code at compile time to make P/Invokes AOT friendly. 
